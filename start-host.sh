@@ -1,21 +1,28 @@
 #!/bin/sh
 set -e
+export NEXT_TELEMETRY_DISABLED=1
 
-npm install
-npm run build
+if [ ! -d node_modules ]; then
+  echo "Installing bot dependencies..."
+  npm install --no-fund --no-audit
+fi
 
-cd dashboard
-npm install
-npm run build
-cd ..
+if [ ! -f dist/index.js ]; then
+  echo "Building bot..."
+  npm run build
+else
+  echo "Bot build found. Skipping build."
+fi
 
+echo "Starting bot..."
 node dist/index.js &
 BOT_PID=$!
 
-cd dashboard
+echo "Starting lightweight dashboard..."
 DASHBOARD_PORT="${SERVER_PORT:-${PORT:-3000}}"
-echo "Dashboard listening on 0.0.0.0:${DASHBOARD_PORT}"
-node node_modules/next/dist/bin/next start -H 0.0.0.0 -p "$DASHBOARD_PORT" &
+echo "SERVER_PORT=${SERVER_PORT:-<unset>} PORT=${PORT:-<unset>}"
+echo "Lite dashboard listening on 0.0.0.0:${DASHBOARD_PORT}"
+node dashboard-lite/server.js &
 WEB_PID=$!
 
 wait

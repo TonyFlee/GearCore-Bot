@@ -100,12 +100,14 @@ npm run dev
 
 Open `http://localhost:8788` and sign in.
 
-For production:
+For production bot only:
 
 ```powershell
 npm run build
-npm start
+npm run start:bot
 ```
+
+For bot plus dashboard, use `sh start-host.sh` or `npm start`.
 
 ### Dashboard controls
 
@@ -131,9 +133,13 @@ Use numeric Discord IDs. Leave a feature disabled with its toggle or the per-row
 
 ### Recommended: bot + dashboard together on bot-hosting.net
 
-Bot-Hosting supports Node.js apps and HTTP subdomains. The simplest setup is **one Node.js deployment** running both processes, because the dashboard can reach the control API at `127.0.0.1:8787`.
+Bot-Hosting supports Node.js apps and HTTP subdomains. Use **one Node.js deployment** running the bot plus `dashboard-lite/server.js`. The lightweight dashboard needs no build step and works within the free plan's memory limit. The Next.js dashboard is kept for local development.
 
-Start command:
+Start command — either of these works:
+
+```sh
+npm start
+```
 
 ```sh
 sh start-host.sh
@@ -155,11 +161,11 @@ DASHBOARD_PASSWORD=...
 DASHBOARD_SESSION_SECRET=...
 ```
 
-Do not hard-code the public web port. `start-host.sh` reads Bot-Hosting's `SERVER_PORT` and binds the dashboard to `0.0.0.0`. If `SERVER_PORT` is absent, it falls back to `PORT`, then `3000`.
+Do not hard-code the public web port. `start-host.sh` reads Bot-Hosting's `SERVER_PORT` and binds the lightweight dashboard to `0.0.0.0`. If `SERVER_PORT` is absent, it falls back to `PORT`, then `3000`.
 
 Activate the HTTPS subdomain on the deployment’s **Domains** tab. Bot-Hosting points it at the `SERVER_PORT` it gave your app. The dashboard is password-protected.
 
-Free plan has 1 deployment and 256 MB RAM. Next.js plus Discord may need more headroom, so Starter+ is safer.
+The free plan's 256 MB is enough for the bot plus the lightweight dashboard because nothing builds Next.js at startup.
 
 ### Alternative: dashboard on Vercel
 

@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "sh start-host.sh",
+    "start:bot": "node dist/index.js",
+    "start:lite": "node dashboard-lite/server.js",
+    "start:host": "sh start-host.sh",
     "check": "tsc --noEmit -p tsconfig.json",
     "deploy:commands": "tsx src/scripts/deploy-commands.ts",
     "clear:guild": "tsx src/scripts/deploy-commands.ts --clear-guild",

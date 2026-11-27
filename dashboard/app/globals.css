@@ -92,6 +92,10 @@ button.secondary { background: transparent; color: var(--text); border-color: va
 button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
 button.small { padding: 6px 10px; font-size: 12px; }
 
+.channel-row { border: 1px solid var(--border); background: var(--bg); padding: 14px; margin-top: 12px; }
+.channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.channel-row .actions { justify-content: space-between; margin-top: 12px; }
+
 .muted { color: var(--muted); }
 .error { color: var(--danger); margin-top: 12px; }
 .success { color: var(--success); margin-top: 12px; }

@@ -8,7 +8,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "check": "tsc --noEmit -p tsconfig.json",
-    "deploy:commands": "tsx src/scripts/deploy-commands.ts"
+    "deploy:commands": "tsx src/scripts/deploy-commands.ts",
+    "clear:guild": "tsx src/scripts/deploy-commands.ts --clear-guild",
+    "clear:global": "tsx src/scripts/deploy-commands.ts --clear-global"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",

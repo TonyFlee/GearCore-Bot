@@ -1,3 +1,9 @@
+export type AutoChannel = {
+  guildId: string;
+  channelId: string;
+  enabled: boolean;
+};
+
 export type BotSettings = {
   supportChannelId: string;
   announceChannelId: string;
@@ -11,6 +17,10 @@ export type BotSettings = {
   announcementsEnabled: boolean;
   welcomeEnabled: boolean;
   productCommandsEnabled: boolean;
+  autoPostOnStart: boolean;
+  autoChannels: AutoChannel[];
+  voiceAutoJoinEnabled: boolean;
+  voiceChannels: AutoChannel[];
 };
 
 export type BotStatus = {
@@ -21,6 +31,8 @@ export type BotStatus = {
   startedAt: string;
   commands: Array<{ name: string; description: string }>;
   openSupport: number;
+  autoChannels: number;
+  voiceChannels: number;
   settings: BotSettings;
 };
 

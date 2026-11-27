@@ -2,6 +2,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { config } from "../config";
 
+export type AutoChannel = {
+  guildId: string;
+  channelId: string;
+  enabled: boolean;
+};
+
 export type BotSettings = {
   supportChannelId: string;
   announceChannelId: string;
@@ -15,9 +21,14 @@ export type BotSettings = {
   announcementsEnabled: boolean;
   welcomeEnabled: boolean;
   productCommandsEnabled: boolean;
+  autoPostOnStart: boolean;
+  autoChannels: AutoChannel[];
+  voiceAutoJoinEnabled: boolean;
+  voiceChannels: AutoChannel[];
 };
 
 const storagePath = resolve(process.cwd(), "data", "settings.json");
+const MAX_CHANNELS = 3;
 
 const defaults: BotSettings = {
   supportChannelId: config.supportChannelId,
@@ -32,7 +43,29 @@ const defaults: BotSettings = {
   announcementsEnabled: true,
   welcomeEnabled: true,
   productCommandsEnabled: true,
+  autoPostOnStart: true,
+  autoChannels: [],
+  voiceAutoJoinEnabled: true,
+  voiceChannels: [],
 };
+
+function cleanId(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const id = value.trim().replace(/^<@[!&]?(\d+)>$/, "$1").replace(/^<#(\d+)>$/, "$1");
+  return /^\d{5,30}$/.test(id) ? id : "";
+}
+
+function sanitizeChannels(value: unknown): AutoChannel[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, MAX_CHANNELS).map((entry) => {
+    const row = entry as Partial<AutoChannel>;
+    return {
+      guildId: cleanId(row.guildId),
+      channelId: cleanId(row.channelId),
+      enabled: row.enabled === true,
+    };
+  }).filter((entry) => entry.guildId && entry.channelId);
+}
 
 function sanitize(patch: Partial<BotSettings>): Partial<BotSettings> {
   const result: Partial<BotSettings> = {};
@@ -42,6 +75,7 @@ function sanitize(patch: Partial<BotSettings>): Partial<BotSettings> {
   ];
   const booleanKeys: Array<keyof BotSettings> = [
     "supportEnabled", "announcementsEnabled", "welcomeEnabled", "productCommandsEnabled",
+    "autoPostOnStart", "voiceAutoJoinEnabled",
   ];
 
   for (const key of stringKeys) {
@@ -50,6 +84,9 @@ function sanitize(patch: Partial<BotSettings>): Partial<BotSettings> {
   for (const key of booleanKeys) {
     if (typeof patch[key] === "boolean") (result as Record<string, unknown>)[key] = patch[key] as boolean;
   }
+  if (Array.isArray(patch.autoChannels)) result.autoChannels = sanitizeChannels(patch.autoChannels);
+  if (Array.isArray(patch.voiceChannels)) result.voiceChannels = sanitizeChannels(patch.voiceChannels);
+
   return result;
 }
 
@@ -65,7 +102,11 @@ function load(): BotSettings {
 let current = load();
 
 export function getSettings(): BotSettings {
-  return { ...current };
+  return {
+    ...current,
+    autoChannels: current.autoChannels.map((entry) => ({ ...entry })),
+    voiceChannels: current.voiceChannels.map((entry) => ({ ...entry })),
+  };
 }
 
 export function updateSettings(patch: Partial<BotSettings>): BotSettings {

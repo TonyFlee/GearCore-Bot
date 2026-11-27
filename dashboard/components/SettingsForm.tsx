@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { BotSettings } from "@/lib/types";
+import ChannelListEditor from "./ChannelListEditor";
+import type { AutoChannel, BotSettings } from "@/lib/types";
 
 const textFields: Array<[keyof BotSettings, string]> = [
   ["supportChannelId", "Support channel ID"],
@@ -19,6 +20,8 @@ const toggleFields: Array<[keyof BotSettings, string]> = [
   ["announcementsEnabled", "Announcements enabled"],
   ["welcomeEnabled", "Welcome messages and roles enabled"],
   ["productCommandsEnabled", "Product and bundle commands enabled"],
+  ["autoPostOnStart", "Auto-post startup message on bot launch"],
+  ["voiceAutoJoinEnabled", "Auto-join configured voice channels"],
 ];
 
 export default function SettingsForm({ initialSettings }: { initialSettings: BotSettings }) {
@@ -27,7 +30,7 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Bot
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function update(key: keyof BotSettings, value: string | boolean) {
+  function update(key: keyof BotSettings, value: string | boolean | AutoChannel[]) {
     setSettings((current) => ({ ...current, [key]: value }) as BotSettings);
   }
 
@@ -84,6 +87,22 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Bot
           </label>
         ))}
       </div>
+
+      <ChannelListEditor
+        title="Auto-post channels"
+        description="Maximum 3 servers. Announcements from the dashboard and /announce can post here automatically."
+        idPrefix="auto"
+        values={settings.autoChannels ?? []}
+        onChange={(values) => update("autoChannels", values)}
+      />
+
+      <ChannelListEditor
+        title="Voice auto-join channels"
+        description="Maximum 3 servers. The bot joins these voice channels on launch and when a member joins."
+        idPrefix="voice"
+        values={settings.voiceChannels ?? []}
+        onChange={(values) => update("voiceChannels", values)}
+      />
 
       {error ? <p className="error">{error}</p> : null}
       {message ? <p className="success">{message}</p> : null}

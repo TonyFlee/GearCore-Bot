@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction } from "discord.js";
+import { bundleComponents } from "../lib/components";
 import { bundleEmbed } from "../lib/embeds";
 import { getSettings } from "../lib/settings";
 import { getBundles } from "../lib/store";
@@ -13,6 +14,9 @@ export const bundleCommand: BotCommand = {
     }
     await interaction.deferReply();
     const bundles = await getBundles();
-    await interaction.editReply({ embeds: [bundleEmbed(bundles)] });
+    await interaction.editReply({
+      embeds: [bundleEmbed(bundles)],
+      ...(bundles.length ? { components: [bundleComponents(bundles)] } : {}),
+    });
   },
 };

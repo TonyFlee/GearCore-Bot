@@ -48,10 +48,42 @@ export function searchResultsEmbed(products: StoreProduct[], query: string): Emb
     .setDescription(truncate(lines.join("\n"), 3800));
 }
 
+export function resultsPageEmbed(products: StoreProduct[], query: string, page: number, pages: number): EmbedBuilder {
+  const lines = products.map((product, index) => {
+    return `${index + 1}. [${escapeMarkdown(product.name)}](${productUrl(product)}) — ${priceLabel(product)} · ${availabilityLabel(product)}`;
+  });
+  return baseEmbed()
+    .setTitle(query ? `Products matching "${truncate(query, 44)}"` : "Featured GearCore products")
+    .setDescription(truncate(lines.join("\n"), 3800))
+    .setFooter({ text: `GearCore.Store · page ${page + 1}/${pages}` });
+}
+
 export function noResultsEmbed(query: string): EmbedBuilder {
   return baseEmbed()
     .setTitle("No products found")
     .setDescription(`No published GearCore product matches "${truncate(query, 80)}". Try a shorter name, a category, or use /bundle.`);
+}
+
+export function startupEmbed(): EmbedBuilder {
+  return baseEmbed()
+    .setTitle("GearCore Bot online")
+    .setURL(config.storeUrl)
+    .setDescription("Product search, bundles, order help, and support are ready.")
+    .addFields(
+      { name: "Shop", value: `[gearcore.store](${config.storeUrl})`, inline: true },
+      { name: "Help", value: "Use /help for delivery, payment, preorder, and warranty answers.", inline: true }
+    );
+}
+
+export function inviteEmbed(url: string): EmbedBuilder {
+  return baseEmbed()
+    .setTitle("Invite GearCore Bot")
+    .setURL(url)
+    .setDescription("[Add the bot to your server](<" + url + ">) with slash commands enabled.")
+    .addFields(
+      { name: "Setup", value: "Invite, then use /help to see what the bot can do.", inline: false },
+      { name: "Privacy", value: "The bot reads only the public GearCore product catalog.", inline: false }
+    );
 }
 
 export function bundleEmbed(bundles: StoreProduct[]): EmbedBuilder {
@@ -112,7 +144,8 @@ export function helpEmbed(): EmbedBuilder {
       { name: "Preorders", value: `Preorder items arrive about ${settings.preorderDays} after the deposit is confirmed.`, inline: false },
       { name: "Payment", value: "ABA, KHQR/Bakong, and card checkout are supported. KHR uses the rate shown at checkout.", inline: false },
       { name: "First order", value: `Use ${settings.promoCode} for 10% off your first order.`, inline: false },
-      { name: "Warranty", value: `[Read warranty terms](${storePath("warranty")}) or ask in /support.`, inline: false }
+      { name: "Warranty", value: `[Read warranty terms](${storePath("warranty")}) or ask in /support.`, inline: false },
+      { name: "Commands", value: "/product, /catalog, /bundle, /random, /order, /support, /invite, /ping", inline: false }
     );
 }
 

@@ -16,6 +16,13 @@ Set `DASHBOARD_PASSWORD` to a strong password, generate a long random `DASHBOARD
 
 The dashboard expects the bot's control API at `http://127.0.0.1:8787` and talks to it server-side. Do not expose the bot's control API publicly.
 
+## Control pages
+
+- Status: health, latency, servers, command list, auto/voice channel counts
+- Announcements: saved channel, override channel, and up to 3 auto-post channels
+- Settings: global bot settings, auto-post channels, voice auto-join channels
+- Support inbox: `/support` requests
+
 ## Checks
 
 ```powershell

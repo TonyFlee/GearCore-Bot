@@ -3,7 +3,7 @@ import express, { type Request, type Response } from "express";
 import type { Client } from "discord.js";
 import { config } from "../config";
 import { commands } from "../commands";
-import { announcementEmbed } from "../lib/embeds";
+import { postAnnouncement } from "../lib/announce";
 import { getSettings, updateSettings } from "../lib/settings";
 import {
   deleteSupportRequest,
@@ -50,6 +50,8 @@ export function startControlServer(client: Client): void {
       startedAt,
       commands: commands.map((command) => ({ name: command.data.name, description: command.data.description })),
       openSupport: listSupportRequests().filter((request) => request.status === "open").length,
+      autoChannels: getSettings().autoChannels.filter((entry) => entry.enabled).length,
+      voiceChannels: getSettings().voiceChannels.filter((entry) => entry.enabled).length,
       settings: getSettings(),
     });
   });
@@ -85,35 +87,17 @@ export function startControlServer(client: Client): void {
   });
 
   app.post("/api/announce", asyncRoute(async (req, res) => {
-    const settings = getSettings();
     const message = String(req.body?.message ?? "").trim();
-    const channelId = String(req.body?.channelId ?? settings.announceChannelId).trim();
+    const channelId = String(req.body?.channelId ?? "").trim();
+    const includeAuto = req.body?.includeAuto !== false;
 
-    if (!settings.announcementsEnabled) {
-      res.status(409).json({ error: "Announcements are disabled in settings." });
-      return;
+    try {
+      const results = await postAnnouncement(client, message, "Dashboard", channelId || undefined, includeAuto);
+      res.json({ ok: true, results });
+    } catch (error) {
+      const status = error instanceof Error && error.message.includes("disabled") ? 409 : 400;
+      res.status(status).json({ error: error instanceof Error ? error.message : "Announcement failed." });
     }
-    if (!message) {
-      res.status(400).json({ error: "Message is required." });
-      return;
-    }
-    if (!channelId) {
-      res.status(400).json({ error: "No announcement channel is configured." });
-      return;
-    }
-
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    const sendable = channel as { send?: unknown } | null;
-    if (!sendable || typeof sendable.send !== "function") {
-      res.status(400).json({ error: "I cannot post in that channel." });
-      return;
-    }
-
-    await (sendable.send as (options: unknown) => Promise<unknown>)({
-      embeds: [announcementEmbed(message, "Dashboard")],
-      allowedMentions: { parse: [] },
-    });
-    res.json({ ok: true });
   }));
 
   app.listen(config.controlPort, "127.0.0.1", () => {

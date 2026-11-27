@@ -4,7 +4,8 @@ import { useState } from "react";
 
 export default function AnnouncementForm({ defaultChannelId }: { defaultChannelId: string }) {
   const [message, setMessage] = useState("");
-  const [channelId, setChannelId] = useState(defaultChannelId);
+  const [channelId, setChannelId] = useState("");
+  const [includeAuto, setIncludeAuto] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -17,7 +18,11 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
     const response = await fetch("/api/announce", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message, channelId }),
+      body: JSON.stringify({
+        message,
+        channelId: channelId.trim() || undefined,
+        includeAuto,
+      }),
     });
     const body = await response.json().catch(() => ({}));
 
@@ -27,8 +32,10 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
       return;
     }
 
+    const results = Array.isArray(body.results) ? body.results as Array<{ ok: boolean }> : [];
+    const failed = results.filter((result) => !result.ok).length;
     setMessage("");
-    setSuccess("Announcement posted to Discord.");
+    setSuccess(failed ? `Posted with ${failed} failed channel(s).` : `Announcement posted to ${results.length} channel(s).`);
     setBusy(false);
   }
 
@@ -46,8 +53,17 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
         id="announcement-channel"
         value={channelId}
         onChange={(event) => setChannelId(event.target.value)}
-        placeholder="Leave blank to use the saved channel"
+        placeholder={defaultChannelId ? `Leave blank to use saved channel ${defaultChannelId}` : "Leave blank to use the saved channel"}
       />
+      <label className="toggle" htmlFor="announcement-auto">
+        <input
+          id="announcement-auto"
+          type="checkbox"
+          checked={includeAuto}
+          onChange={(event) => setIncludeAuto(event.target.checked)}
+        />
+        Also post to enabled auto-post channels
+      </label>
       {error ? <p className="error">{error}</p> : null}
       {success ? <p className="success">{success}</p> : null}
       <div className="actions">

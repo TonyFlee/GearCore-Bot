@@ -1,47 +1,32 @@
 import { PermissionFlagsBits, SlashCommandBuilder, type ChatInputCommandInteraction } from "discord.js";
-import { announcementEmbed } from "../lib/embeds";
-import { getSettings } from "../lib/settings";
+import { postAnnouncement } from "../lib/announce";
 import type { BotCommand } from ".";
 
 export const announceCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("announce")
-    .setDescription("Post a GearCore announcement.")
+    .setDescription("Post a GearCore announcement to the saved and auto-post channels.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addStringOption((option) => option.setName("message").setDescription("Announcement text").setRequired(true))
-    .addChannelOption((option) => option.setName("channel").setDescription("Channel to post in").setRequired(false)),
+    .addChannelOption((option) => option.setName("channel").setDescription("Override the destination channel").setRequired(false)),
   async execute(interaction: ChatInputCommandInteraction) {
-    const settings = getSettings();
     const message = interaction.options.getString("message", true).trim();
+    const override = interaction.options.getChannel("channel")?.id;
 
-    if (!settings.announcementsEnabled) {
-      await interaction.reply({ content: "Announcements are currently disabled.", ephemeral: true });
-      return;
-    }
-    if (!message) {
-      await interaction.reply({ content: "Announcement text cannot be empty.", ephemeral: true });
-      return;
-    }
-
-    const channelId = interaction.options.getChannel("channel")?.id ?? settings.announceChannelId;
-    if (!channelId) {
+    try {
+      const results = await postAnnouncement(interaction.client, message, interaction.user.tag, override);
+      const failed = results.filter((result) => !result.ok).length;
       await interaction.reply({
-        content: "Set ANNOUNCE_CHANNEL_ID in .env or choose a channel with the channel option.",
+        content: failed
+          ? `Announcement posted to ${results.length - failed} channel(s); ${failed} failed.`
+          : `Announcement posted to ${results.length} channel(s).`,
         ephemeral: true,
       });
-      return;
+    } catch (error) {
+      await interaction.reply({
+        content: error instanceof Error ? error.message : "Announcement failed.",
+        ephemeral: true,
+      });
     }
-
-    const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
-    if (!channel || !("send" in channel)) {
-      await interaction.reply({ content: "I cannot post in that channel. Check the channel ID and bot permissions.", ephemeral: true });
-      return;
-    }
-
-    await channel.send({
-      embeds: [announcementEmbed(message, interaction.user.tag)],
-      allowedMentions: { parse: [] },
-    });
-    await interaction.reply({ content: "Announcement posted.", ephemeral: true });
   },
 };

@@ -4,14 +4,19 @@ Standalone Discord bot for `gearcore.store`. It reads only the public product ca
 
 ## Features
 
-- `/product` — search live GearCore products by name, slug, or category.
-- `/bundle` — show live bundle prices and savings.
-- `/order` — privacy-safe guidance to the customer's own account/invoice.
+- `/product` — autocomplete search across live products, with paginated results and product buttons.
+- `/catalog` — browse the live catalog by category with autocomplete and pagination.
+- `/random` — show a random live product.
+- `/bundle` — show live bundle prices and savings with direct site buttons.
+- `/order` — privacy-safe guidance to the customer's own account/invoice. Never reads private orders.
 - `/support` — send a help request to the support inbox and a configured Discord channel.
-- `/announce` — post a store announcement to a chosen channel (Manage Server permission required).
-- `/help` — delivery, payment, preorder, warranty, and contact information.
+- `/announce` — post to the saved channel and all enabled auto-post channels.
+- `/invite` — generate an official invite link with the permissions the bot needs.
+- `/help` — delivery, payment, preorder, warranty, and contact information with quick links.
 - `/ping` — bot latency check.
 - New members — optional welcome message and role assignment.
+- Auto-post — post a startup message and dashboard announcements to up to 3 configured servers/channels.
+- Voice auto-join — join up to 3 configured voice channels on launch, and follow members into them.
 - Web dashboard — password-protected status, announcements, full settings, and support inbox.
 
 ## Setup
@@ -30,6 +35,7 @@ npm install
    - Copy the application ID to `DISCORD_CLIENT_ID`.
    - Enable **Server Members Intent** under Bot → Privileged Gateway Intents.
    - Invite the bot with scopes `bot` and `applications.commands`.
+   - For voice auto-join, grant **Connect** and **Speak** permissions. `/invite` includes these.
 
 4. Register **global/public** slash commands:
 
@@ -42,6 +48,16 @@ Global commands can take up to an hour to appear in every server. For instant up
 ```powershell
 npm run deploy:commands -- --guild
 ```
+
+### Duplicate commands
+
+If Discord shows every command twice, the same command exists as both a guild command and a global command. To keep only the global/public set:
+
+```powershell
+npm run clear:guild
+```
+
+`DISCORD_GUILD_ID` or `DISCORD_GUILD_IDS` must contain the server ID(s). Future `npm run deploy:commands` runs clear those guild commands automatically. For several test servers, use a comma-separated `DISCORD_GUILD_IDS`.
 
 5. Run the bot:
 
@@ -94,12 +110,21 @@ npm start
 
 | Page | What it does |
 | --- | --- |
-| Status | Live bot health, servers, latency, uptime, command list, open support count |
-| Announcements | Post a message through the bot to the saved or overridden channel |
-| Settings | Channels, roles, support email, Telegram, promo code, preorder window, feature toggles |
+| Status | Live bot health, servers, latency, uptime, command list, open support count, configured auto/voice channel counts |
+| Announcements | Post to the saved channel, an override, and/or up to 3 auto-post channels |
+| Settings | Channels, roles, contacts, promo code, preorder window, feature toggles, auto-post channels, voice auto-join channels |
 | Support inbox | Read, mark resolved, and delete `/support` requests |
 
 Settings are stored in `data/settings.json`. Support requests are stored in `data/support.json`.
+
+## Auto channels
+
+The dashboard supports up to 3 entries for each list:
+
+- **Auto-post channels**: server ID + channel ID. Used for startup messages and announcements.
+- **Voice auto-join channels**: server ID + channel ID. The bot joins on launch and when a member enters the channel.
+
+Use numeric Discord IDs. Leave a feature disabled with its toggle or the per-row checkbox.
 
 ## Environment notes
 

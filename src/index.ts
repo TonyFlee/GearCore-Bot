@@ -4,7 +4,7 @@ import { events } from "./events";
 import { startControlServer } from "./server/control";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildVoiceStates],
 });
 
 for (const event of events) {

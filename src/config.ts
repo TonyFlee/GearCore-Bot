@@ -23,11 +23,16 @@ function optionalEnv(...names: string[]): string {
 
 const rawStoreUrl = firstEnv("STORE_URL", "NEXT_PUBLIC_APP_URL") ?? "https://www.gearcore.store/";
 const storeUrl = rawStoreUrl.endsWith("/") ? rawStoreUrl : `${rawStoreUrl}/`;
+const discordGuildIds = (firstEnv("DISCORD_GUILD_IDS", "DISCORD_GUILD_ID") ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 export const config = {
   discordToken: requiredEnv("DISCORD_TOKEN"),
   discordClientId: requiredEnv("DISCORD_CLIENT_ID", "DISCORD_APPLICATION_ID"),
   discordGuildId: optionalEnv("DISCORD_GUILD_ID"),
+  discordGuildIds,
   supabaseUrl: requiredEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
   supabaseAnonKey: requiredEnv("SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   storeUrl,

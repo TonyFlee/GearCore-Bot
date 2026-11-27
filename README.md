@@ -153,12 +153,11 @@ BOT_CONTROL_URL=http://127.0.0.1:8787
 BOT_CONTROL_TOKEN=same_as_CONTROL_API_TOKEN
 DASHBOARD_PASSWORD=...
 DASHBOARD_SESSION_SECRET=...
-PORT=3000
 ```
 
-If Bot-Hosting provides `PORT` automatically, leave `PORT` unset. The dashboard uses the platform value, or `3000` by default.
+Do not hard-code the public web port. `start-host.sh` reads Bot-Hosting's `SERVER_PORT` and binds the dashboard to `0.0.0.0`. If `SERVER_PORT` is absent, it falls back to `PORT`, then `3000`.
 
-Activate the HTTPS subdomain on the deployment’s **Domains** tab. Point it at the dashboard port shown in the panel. The dashboard is password-protected.
+Activate the HTTPS subdomain on the deployment’s **Domains** tab. Bot-Hosting points it at the `SERVER_PORT` it gave your app. The dashboard is password-protected.
 
 Free plan has 1 deployment and 256 MB RAM. Next.js plus Discord may need more headroom, so Starter+ is safer.
 

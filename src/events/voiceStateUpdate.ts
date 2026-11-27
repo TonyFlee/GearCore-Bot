@@ -10,6 +10,7 @@ export const voiceStateUpdateEvent = {
     if (!getSettings().voiceAutoJoinEnabled) return;
     if (newState.channel.members.has(newState.client.user?.id ?? "")) return;
 
+    console.log(`Voice auto-join: member joined configured channel ${newState.channelId}`);
     await joinVoiceChannelForMember(newState.client, newState.guild.id, newState.channelId).catch((error) => {
       console.error("Voice follow failed:", error);
     });

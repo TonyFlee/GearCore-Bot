@@ -59,6 +59,24 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Bot
     setBusy(false);
   }
 
+  async function testVoice(entry: AutoChannel) {
+    setError("");
+    setMessage("");
+
+    const response = await fetch("/api/voice/join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ guildId: entry.guildId, channelId: entry.channelId }),
+    });
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok || body.ok === false) {
+      setError(body.error || "Could not join that voice channel.");
+      return;
+    }
+    setMessage("Joined the voice channel. Check Discord.");
+  }
+
   return (
     <>
       <div className="card">
@@ -133,6 +151,8 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Bot
         idPrefix="voice"
         values={settings.voiceChannels ?? []}
         onChange={(values) => update("voiceChannels", values)}
+        onTest={(entry) => void testVoice(entry)}
+        testLabel="Test join"
       />
 
       {error ? <p className="error">{error}</p> : null}

@@ -13,7 +13,9 @@ node dist/index.js &
 BOT_PID=$!
 
 cd dashboard
-node node_modules/next/dist/bin/next start -p "${PORT:-3000}" &
+DASHBOARD_PORT="${SERVER_PORT:-${PORT:-3000}}"
+echo "Dashboard listening on 0.0.0.0:${DASHBOARD_PORT}"
+node node_modules/next/dist/bin/next start -H 0.0.0.0 -p "$DASHBOARD_PORT" &
 WEB_PID=$!
 
 wait

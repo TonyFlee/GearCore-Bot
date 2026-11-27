@@ -8,11 +8,13 @@ type Props = {
   idPrefix: string;
   values: AutoChannel[];
   onChange: (values: AutoChannel[]) => void;
+  onTest?: (entry: AutoChannel) => void;
+  testLabel?: string;
 };
 
 const MAX = 3;
 
-export default function ChannelListEditor({ title, description, idPrefix, values, onChange }: Props) {
+export default function ChannelListEditor({ title, description, idPrefix, values, onChange, onTest, testLabel }: Props) {
   function update(index: number, patch: Partial<AutoChannel>) {
     onChange(values.map((entry, position) => position === index ? { ...entry, ...patch } : entry));
   }
@@ -63,6 +65,9 @@ export default function ChannelListEditor({ title, description, idPrefix, values
               />
               Enabled
             </label>
+            {onTest && entry.channelId ? (
+              <button className="small" type="button" onClick={() => onTest(entry)}>{testLabel ?? "Test"}</button>
+            ) : null}
             <button className="danger small" type="button" onClick={() => remove(index)}>Remove</button>
           </div>
         </div>

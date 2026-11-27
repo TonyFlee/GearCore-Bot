@@ -6,6 +6,7 @@ import { commands } from "../commands";
 import { postAnnouncement } from "../lib/announce";
 import { applyPresence } from "../lib/presence";
 import { getSettings, updateSettings } from "../lib/settings";
+import { joinVoiceTarget } from "../lib/voice";
 import {
   deleteSupportRequest,
   listSupportRequests,
@@ -103,6 +104,17 @@ export function startControlServer(client: Client): void {
       const status = error instanceof Error && error.message.includes("disabled") ? 409 : 400;
       res.status(status).json({ error: error instanceof Error ? error.message : "Announcement failed." });
     }
+  }));
+
+  app.post("/api/voice/join", asyncRoute(async (req, res) => {
+    const guildId = String(req.body?.guildId ?? "").trim();
+    const channelId = String(req.body?.channelId ?? "").trim();
+    if (!channelId) {
+      res.status(400).json({ error: "Channel ID is required." });
+      return;
+    }
+    const result = await joinVoiceTarget(client, { guildId, channelId, enabled: true });
+    res.json(result);
   }));
 
   app.listen(config.controlPort, config.controlHost, () => {

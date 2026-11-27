@@ -100,7 +100,7 @@ export function startControlServer(client: Client): void {
     }
   }));
 
-  app.listen(config.controlPort, "127.0.0.1", () => {
-    console.log(`Control API listening on http://127.0.0.1:${config.controlPort}`);
+  app.listen(config.controlPort, config.controlHost, () => {
+    console.log(`Control API listening on http://${config.controlHost}:${config.controlPort}`);
   });
 }

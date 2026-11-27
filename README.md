@@ -126,6 +126,51 @@ The dashboard supports up to 3 entries for each list:
 
 Use numeric Discord IDs. Leave a feature disabled with its toggle or the per-row checkbox.
 
+## Hosting
+
+### Recommended: bot + dashboard together on bot-hosting.net
+
+Bot-Hosting supports Node.js apps and HTTP subdomains. The simplest setup is **one Node.js deployment** running both processes, because the dashboard can reach the control API at `127.0.0.1:8787`.
+
+Start command:
+
+```sh
+sh start-host.sh
+```
+
+Set these environment variables in the hosting panel, not only in local `.env` files:
+
+```env
+DISCORD_TOKEN=...
+DISCORD_CLIENT_ID=...
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+CONTROL_HOST=127.0.0.1
+CONTROL_PORT=8787
+CONTROL_API_TOKEN=...
+BOT_CONTROL_URL=http://127.0.0.1:8787
+BOT_CONTROL_TOKEN=same_as_CONTROL_API_TOKEN
+DASHBOARD_PASSWORD=...
+DASHBOARD_SESSION_SECRET=...
+PORT=8788
+```
+
+Activate the HTTPS subdomain on the deployment’s **Domains** tab. Point it at the dashboard port shown in the panel. The dashboard is password-protected.
+
+Free plan has 1 deployment and 256 MB RAM. Next.js plus Discord may need more headroom, so Starter+ is safer.
+
+### Alternative: dashboard on Vercel
+
+Vercel cannot reach `127.0.0.1:8787` on another host. To use Vercel:
+
+1. Host the bot on bot-hosting.net.
+2. Set `CONTROL_HOST=0.0.0.0` on the bot.
+3. Activate an HTTPS subdomain for the control API port.
+4. Set Vercel `BOT_CONTROL_URL` to that HTTPS URL.
+5. Set Vercel `BOT_CONTROL_TOKEN` to the same `CONTROL_API_TOKEN`.
+
+Only do this behind HTTPS. Never expose the control API without the token.
+
 ## Environment notes
 
 - `CONTROL_API_TOKEN` protects the bot's local control API. Do not expose port `8787` publicly.

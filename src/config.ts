@@ -44,6 +44,7 @@ export const config = {
   announceChannelId: optionalEnv("ANNOUNCE_CHANNEL_ID"),
   welcomeChannelId: optionalEnv("WELCOME_CHANNEL_ID"),
   welcomeRoleId: optionalEnv("WELCOME_ROLE_ID"),
+  controlHost: firstEnv("CONTROL_HOST") ?? "127.0.0.1",
   controlPort: Number(firstEnv("CONTROL_PORT") ?? "8787"),
   controlApiToken: requiredEnv("CONTROL_API_TOKEN"),
 };

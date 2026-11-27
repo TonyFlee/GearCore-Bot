@@ -22,7 +22,7 @@ async function joinVoiceTarget(client: Client, target: AutoChannel): Promise<Ann
   }
 
   if (!("join" in channel) || typeof channel.join !== "function") {
-    return { channelId: target.channelId, ok: false, error: "Channel is not joinable." };
+    return { channelId: target.channelId, ok: false, error: "Not a voice channel or missing join permission." };
   }
 
   try {

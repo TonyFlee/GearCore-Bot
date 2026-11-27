@@ -17,6 +17,7 @@ Standalone Discord bot for `gearcore.store`. It reads only the public product ca
 - New members — optional welcome message and role assignment.
 - Auto-post — post a startup message and dashboard announcements to up to 3 configured servers/channels.
 - Voice auto-join — join up to 3 configured voice channels on launch, and follow members into them.
+- Discord presence — dashboard-controlled status text, activity type, and online/idle/dnd/invisible state.
 - Web dashboard — password-protected status, announcements, full settings, and support inbox.
 
 ## Setup
@@ -112,7 +113,7 @@ npm start
 | --- | --- |
 | Status | Live bot health, servers, latency, uptime, command list, open support count, configured auto/voice channel counts |
 | Announcements | Post to the saved channel, an override, and/or up to 3 auto-post channels |
-| Settings | Channels, roles, contacts, promo code, preorder window, feature toggles, auto-post channels, voice auto-join channels |
+| Settings | Channels, roles, contacts, promo code, preorder window, Discord status, feature toggles, auto-post channels, voice auto-join channels |
 | Support inbox | Read, mark resolved, and delete `/support` requests |
 
 Settings are stored in `data/settings.json`. Support requests are stored in `data/support.json`.
@@ -152,8 +153,10 @@ BOT_CONTROL_URL=http://127.0.0.1:8787
 BOT_CONTROL_TOKEN=same_as_CONTROL_API_TOKEN
 DASHBOARD_PASSWORD=...
 DASHBOARD_SESSION_SECRET=...
-PORT=8788
+PORT=3000
 ```
+
+If Bot-Hosting provides `PORT` automatically, leave `PORT` unset. The dashboard uses the platform value, or `3000` by default.
 
 Activate the HTTPS subdomain on the deployment’s **Domains** tab. Point it at the dashboard port shown in the panel. The dashboard is password-protected.
 

@@ -1,5 +1,6 @@
-import { ActivityType, Events, type Client } from "discord.js";
+import { Events, type Client } from "discord.js";
 import { postStartupAnnouncement } from "../lib/auto-post";
+import { applyPresence } from "../lib/presence";
 import { joinConfiguredVoiceChannels } from "../lib/voice";
 
 export const readyEvent = {
@@ -7,7 +8,7 @@ export const readyEvent = {
   once: true,
   async execute(client: Client<true>) {
     console.log(`Logged in as ${client.user.tag}`);
-    client.user.setActivity("gearcore.store", { type: ActivityType.Watching });
+    await applyPresence(client);
     console.log(`Serving ${client.guilds.cache.size} guild(s)`);
 
     const announcements = await postStartupAnnouncement(client).catch((error) => {

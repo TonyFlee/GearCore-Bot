@@ -4,6 +4,7 @@ import type { Client } from "discord.js";
 import { config } from "../config";
 import { commands } from "../commands";
 import { postAnnouncement } from "../lib/announce";
+import { applyPresence } from "../lib/presence";
 import { getSettings, updateSettings } from "../lib/settings";
 import {
   deleteSupportRequest,
@@ -60,9 +61,13 @@ export function startControlServer(client: Client): void {
     res.json({ settings: getSettings() });
   });
 
-  app.put("/api/settings", (req, res) => {
-    res.json({ settings: updateSettings(req.body ?? {}) });
-  });
+  app.put("/api/settings", asyncRoute(async (req, res) => {
+    const settings = updateSettings(req.body ?? {});
+    await applyPresence(client).catch((error) => {
+      console.error("Presence update failed:", error);
+    });
+    res.json({ settings });
+  }));
 
   app.get("/api/support", (_req, res) => {
     res.json({ requests: listSupportRequests() });

@@ -13,6 +13,10 @@ export type BotSettings = {
   telegramUsername: string;
   promoCode: string;
   preorderDays: string;
+  statusText: string;
+  statusType: "playing" | "streaming" | "listening" | "watching" | "competing";
+  presenceStatus: "online" | "idle" | "dnd" | "invisible";
+  statusUrl: string;
   supportEnabled: boolean;
   announcementsEnabled: boolean;
   welcomeEnabled: boolean;

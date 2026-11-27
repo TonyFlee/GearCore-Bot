@@ -20,7 +20,7 @@ The dashboard expects the bot's control API at `http://127.0.0.1:8787` and talks
 
 - Status: health, latency, servers, command list, auto/voice channel counts
 - Announcements: saved channel, override channel, and up to 3 auto-post channels
-- Settings: global bot settings, auto-post channels, voice auto-join channels
+- Settings: global bot settings, Discord status/presence, auto-post channels, voice auto-join channels
 - Support inbox: `/support` requests
 
 ## Checks

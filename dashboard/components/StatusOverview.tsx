@@ -50,6 +50,7 @@ export default function StatusOverview({ initialStatus, initialError }: Props) {
             <div className="stat"><span>Open support</span><strong>{status.openSupport}</strong></div>
             <div className="stat"><span>Auto-post channels</span><strong>{status.autoChannels ?? 0}</strong></div>
             <div className="stat"><span>Voice channels</span><strong>{status.voiceChannels ?? 0}</strong></div>
+            <div className="stat"><span>Status</span><strong>{status.settings.statusText || "—"}</strong></div>
           </div>
 
           <div className="card">

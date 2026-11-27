@@ -8,6 +8,9 @@ export type AutoChannel = {
   enabled: boolean;
 };
 
+export type ActivityKind = "playing" | "streaming" | "listening" | "watching" | "competing";
+export type PresenceKind = "online" | "idle" | "dnd" | "invisible";
+
 export type BotSettings = {
   supportChannelId: string;
   announceChannelId: string;
@@ -17,6 +20,10 @@ export type BotSettings = {
   telegramUsername: string;
   promoCode: string;
   preorderDays: string;
+  statusText: string;
+  statusType: ActivityKind;
+  presenceStatus: PresenceKind;
+  statusUrl: string;
   supportEnabled: boolean;
   announcementsEnabled: boolean;
   welcomeEnabled: boolean;
@@ -39,6 +46,10 @@ const defaults: BotSettings = {
   telegramUsername: config.telegramUsername,
   promoCode: config.promoCode,
   preorderDays: config.preorderDays,
+  statusText: "🟢 Support Team Online",
+  statusType: "watching",
+  presenceStatus: "online",
+  statusUrl: "",
   supportEnabled: true,
   announcementsEnabled: true,
   welcomeEnabled: true,
@@ -71,7 +82,7 @@ function sanitize(patch: Partial<BotSettings>): Partial<BotSettings> {
   const result: Partial<BotSettings> = {};
   const stringKeys: Array<keyof BotSettings> = [
     "supportChannelId", "announceChannelId", "welcomeChannelId", "welcomeRoleId",
-    "supportEmail", "telegramUsername", "promoCode", "preorderDays",
+    "supportEmail", "telegramUsername", "promoCode", "preorderDays", "statusText", "statusUrl",
   ];
   const booleanKeys: Array<keyof BotSettings> = [
     "supportEnabled", "announcementsEnabled", "welcomeEnabled", "productCommandsEnabled",
@@ -84,6 +95,10 @@ function sanitize(patch: Partial<BotSettings>): Partial<BotSettings> {
   for (const key of booleanKeys) {
     if (typeof patch[key] === "boolean") (result as Record<string, unknown>)[key] = patch[key] as boolean;
   }
+  const activityKinds: ActivityKind[] = ["playing", "streaming", "listening", "watching", "competing"];
+  const presenceKinds: PresenceKind[] = ["online", "idle", "dnd", "invisible"];
+  if (activityKinds.includes(patch.statusType as ActivityKind)) result.statusType = patch.statusType as ActivityKind;
+  if (presenceKinds.includes(patch.presenceStatus as PresenceKind)) result.presenceStatus = patch.presenceStatus as PresenceKind;
   if (Array.isArray(patch.autoChannels)) result.autoChannels = sanitizeChannels(patch.autoChannels);
   if (Array.isArray(patch.voiceChannels)) result.voiceChannels = sanitizeChannels(patch.voiceChannels);
 

@@ -13,6 +13,8 @@ const textFields: Array<[keyof BotSettings, string]> = [
   ["telegramUsername", "Telegram username"],
   ["promoCode", "Promo code"],
   ["preorderDays", "Preorder arrival window"],
+  ["statusText", "Discord status text"],
+  ["statusUrl", "Streaming URL (only for Streaming activity)"],
 ];
 
 const toggleFields: Array<[keyof BotSettings, string]> = [
@@ -86,6 +88,35 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Bot
             {label}
           </label>
         ))}
+      </div>
+
+      <div className="card">
+        <h2>Discord presence</h2>
+        <label htmlFor="statusType">Activity type</label>
+        <select
+          id="statusType"
+          value={settings.statusType}
+          onChange={(event) => update("statusType", event.target.value)}
+        >
+          <option value="watching">Watching</option>
+          <option value="playing">Playing</option>
+          <option value="listening">Listening</option>
+          <option value="streaming">Streaming</option>
+          <option value="competing">Competing</option>
+        </select>
+
+        <label htmlFor="presenceStatus">Presence</label>
+        <select
+          id="presenceStatus"
+          value={settings.presenceStatus}
+          onChange={(event) => update("presenceStatus", event.target.value)}
+        >
+          <option value="online">🟢 Online</option>
+          <option value="idle">🌙 Idle</option>
+          <option value="dnd">⛔ Do Not Disturb</option>
+          <option value="invisible">⚪ Invisible</option>
+        </select>
+        <p className="muted">Example status text: 🟢 Support Team Online</p>
       </div>
 
       <ChannelListEditor

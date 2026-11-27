@@ -82,8 +82,8 @@ function requireAuth(req, res, next) {
 }
 
 async function controlFetch(path, init = {}) {
-  const token = process.env.BOT_CONTROL_TOKEN;
-  if (!token) throw new Error('BOT_CONTROL_TOKEN is not configured on hosting.');
+  const token = String(process.env.BOT_CONTROL_TOKEN || process.env.CONTROL_API_TOKEN || '').trim();
+  if (!token) throw new Error('Neither BOT_CONTROL_TOKEN nor CONTROL_API_TOKEN has a value on hosting.');
 
   const response = await fetch(`${controlUrl}${path}`, {
     ...init,

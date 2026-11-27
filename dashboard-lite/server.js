@@ -104,7 +104,7 @@ async function controlFetch(path, init = {}) {
   return body;
 }
 
-function layout(title, content, active = '') {
+function layout(title, content, active = '', scripts = '') {
   const nav = [
     ['/', 'Status'],
     ['/announcements', 'Announcements'],
@@ -155,12 +155,16 @@ th{color:var(--muted);font-size:12px}
 .channel-row{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
 .channel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 code{color:var(--accent)}
+.card h2:first-child{margin-top:0}
+.card>label:first-of-type{margin-top:0}
+[hidden]{display:none!important}
 @media(max-width:640px){.channel-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header><div class="inner"><div class="brand">GEARCORE BOT</div><nav>${nav.map(([href, label]) => `<a href="${href}" class="${active === href ? 'active' : ''}">${label}</a>`).join('')}<a href="/logout">Sign out</a></nav></div></header>
-<main>${content}</main>
+<main><div id="flash" class="error" hidden></div>${content}</main>
+${scripts}
 </body>
 </html>`;
 }
@@ -249,9 +253,121 @@ function readChannels(body, prefix) {
   })).filter((entry) => entry.guildId || entry.channelId);
 }
 
+function channelRow(prefix, index, entry, withTest) {
+  return `<div class="channel-row" data-row>
+    <div class="channel-grid">
+      <div><label>Server ID</label><input data-guild name="${prefix}Guild${index}" value="${escapeHtml(entry.guildId)}" placeholder="Discord server ID"></div>
+      <div><label>Channel ID</label><input data-channel name="${prefix}Channel${index}" value="${escapeHtml(entry.channelId)}" placeholder="Discord channel ID"></div>
+    </div>
+    <div class="actions">
+      <label class="toggle"><input data-enabled type="checkbox" name="${prefix}Enabled${index}" ${entry.enabled ? 'checked' : ''}>Enabled</label>
+      ${withTest ? '<button class="secondary small" type="button" data-test-voice>Test join</button>' : ''}
+      <button class="danger small" type="button" data-remove-channel>Remove</button>
+    </div>
+  </div>`;
+}
+
 function channelEditor(prefix, title, description, values, withTest) {
-  const rows = values.map((entry, index) => `<div class="channel-row"><div class="channel-grid"><div><label>Server ID</label><input name="${prefix}Guild${index}" value="${escapeHtml(entry.guildId)}" placeholder="Discord server ID"></div><div><label>Channel ID</label><input name="${prefix}Channel${index}" value="${escapeHtml(entry.channelId)}" placeholder="Discord channel ID"></div></div><div class="actions"><label class="toggle"><input type="checkbox" name="${prefix}Enabled${index}" ${entry.enabled ? 'checked' : ''}>Enabled</label>${withTest ? `<button class="secondary small" type="submit" formaction="/settings/voice-test" name="testVoiceIndex" value="${index}">Test join</button>` : ''}</div></div>`).join('');
-  return `<div class="card"><h2>${escapeHtml(title)}</h2><p class="muted">${escapeHtml(description)}</p><input type="hidden" name="${prefix}Count" value="${values.length}">${rows}${values.length < 3 ? `<div class="actions"><button class="secondary small" type="submit" formaction="/settings/add-channel" name="addChannelPrefix" value="${prefix}">Add channel</button></div>` : ''}</div>`;
+  const rows = values.map((entry, index) => channelRow(prefix, index, entry, withTest)).join('');
+  return `<div class="card" data-channel-editor="${prefix}">
+    <h2>${escapeHtml(title)}</h2>
+    <p class="muted">${escapeHtml(description)}</p>
+    <input type="hidden" data-count name="${prefix}Count" value="${values.length}">
+    <div data-rows>${rows}</div>
+    <div class="actions"><button class="secondary small" type="button" data-add-channel="${prefix}" ${values.length >= 3 ? 'hidden' : ''}>Add channel</button></div>
+  </div>`;
+}
+
+function settingsScript() {
+  return String.raw`<script>
+(function () {
+  var form = document.getElementById('settings-form');
+  if (!form) return;
+  var flash = document.getElementById('flash');
+
+  function show(message, isError) {
+    flash.textContent = message;
+    flash.className = isError ? 'error' : 'success';
+    flash.hidden = false;
+  }
+
+  function editor(prefix) {
+    return form.querySelector('[data-channel-editor="' + prefix + '"]');
+  }
+
+  function reindex(prefix) {
+    var box = editor(prefix);
+    var rows = Array.prototype.slice.call(box.querySelectorAll('[data-row]'));
+    rows.forEach(function (row, index) {
+      row.querySelector('[data-guild]').name = prefix + 'Guild' + index;
+      row.querySelector('[data-channel]').name = prefix + 'Channel' + index;
+      row.querySelector('[data-enabled]').name = prefix + 'Enabled' + index;
+    });
+    box.querySelector('[data-count]').value = rows.length;
+    var add = form.querySelector('[data-add-channel="' + prefix + '"]');
+    if (add) add.hidden = rows.length >= 3;
+  }
+
+  function makeRow(prefix, withTest) {
+    return '<div class="channel-row" data-row><div class="channel-grid"><div><label>Server ID</label><input data-guild name="' + prefix + 'Guild0" placeholder="Discord server ID"></div><div><label>Channel ID</label><input data-channel name="' + prefix + 'Channel0" placeholder="Discord channel ID"></div></div><div class="actions"><label class="toggle"><input data-enabled type="checkbox" name="' + prefix + 'Enabled0" checked>Enabled</label>' + (withTest ? '<button class="secondary small" type="button" data-test-voice>Test join</button>' : '') + '<button class="danger small" type="button" data-remove-channel>Remove</button></div></div>';
+  }
+
+  form.addEventListener('click', function (event) {
+    var add = event.target.closest('[data-add-channel]');
+    if (add) {
+      var prefix = add.getAttribute('data-add-channel');
+      var box = editor(prefix);
+      if (box.querySelectorAll('[data-row]').length >= 3) return;
+      box.querySelector('[data-rows]').insertAdjacentHTML('beforeend', makeRow(prefix, prefix === 'voice'));
+      reindex(prefix);
+      return;
+    }
+
+    var remove = event.target.closest('[data-remove-channel]');
+    if (remove) {
+      var wrapper = remove.closest('[data-channel-editor]');
+      remove.closest('[data-row]').remove();
+      reindex(wrapper.getAttribute('data-channel-editor'));
+      return;
+    }
+
+    var test = event.target.closest('[data-test-voice]');
+    if (test) {
+      var row = test.closest('[data-row]');
+      var guildId = row.querySelector('[data-guild]').value.trim();
+      var channelId = row.querySelector('[data-channel]').value.trim();
+      if (!channelId) { show('Enter a channel ID first.', true); return; }
+      test.disabled = true;
+      fetch('/settings/voice-test-json', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-lite-fetch': '1' },
+        body: JSON.stringify({ guildId: guildId, channelId: channelId })
+      }).then(function (response) { return response.json(); }).then(function (data) {
+        if (data.ok === false) show(data.error || 'Could not join that channel.', true);
+        else show('Joined the voice channel. Check Discord.', false);
+      }).catch(function (error) { show(error.message, true); }).finally(function () { test.disabled = false; });
+    }
+  });
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var save = form.querySelector('[data-save]');
+    save.disabled = true;
+    save.textContent = 'Saving...';
+    fetch('/settings', {
+      method: 'POST',
+      headers: { 'x-lite-fetch': '1' },
+      body: new URLSearchParams(new FormData(form))
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (data.ok === false) show(data.error || 'Could not save settings.', true);
+      else show(data.message || 'Settings saved.', false);
+    }).catch(function (error) { show(error.message, true); }).finally(function () {
+      save.disabled = false;
+      save.textContent = 'Save settings';
+    });
+  });
+})();
+</script>`;
 }
 
 app.get('/settings', requireAuth, async (req, res) => {
@@ -282,8 +398,8 @@ app.get('/settings', requireAuth, async (req, res) => {
     const toggleFields = toggles.map(([key, label]) => `<label class="toggle"><input type="checkbox" name="${key}" ${settings[key] ? 'checked' : ''}>${escapeHtml(label)}</label>`).join('');
     const activity = ['watching', 'playing', 'listening', 'streaming', 'competing'].map((value) => `<option value="${value}" ${settings.statusType === value ? 'selected' : ''}>${value[0].toUpperCase() + value.slice(1)}</option>`).join('');
     const presence = [['online', '🟢 Online'], ['idle', '🌙 Idle'], ['dnd', '⛔ Do Not Disturb'], ['invisible', '⚪ Invisible']].map(([value, label]) => `<option value="${value}" ${settings.presenceStatus === value ? 'selected' : ''}>${label}</option>`).join('');
-    const content = `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Settings</h1><form method="post" action="/settings"><div class="card"><h2>Channels and contacts</h2>${fields}</div><div class="card"><h2>Features</h2>${toggleFields}</div><div class="card"><h2>Discord presence</h2><label for="statusType">Activity type</label><select id="statusType" name="statusType">${activity}</select><label for="presenceStatus">Presence</label><select id="presenceStatus" name="presenceStatus">${presence}</select><p class="muted">Example status text: 🟢 Support Team Online</p></div>${channelEditor('auto', 'Auto-post channels', 'Maximum 3 servers. Announcements and startup messages post here.', settings.autoChannels || [], false)}${channelEditor('voice', 'Voice auto-join channels', 'Maximum 3 servers. Bot joins on launch and when a member enters. Use a speaker-icon voice channel.', settings.voiceChannels || [], true)}<div class="actions"><button type="submit">Save settings</button></div></form>`;
-    res.type('html').send(layout('Settings', content, '/settings'));
+    const content = `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Settings</h1><form id="settings-form" method="post" action="/settings"><div class="card"><h2>Channels and contacts</h2>${fields}</div><div class="card"><h2>Features</h2>${toggleFields}</div><div class="card"><h2>Discord presence</h2><label for="statusType">Activity type</label><select id="statusType" name="statusType">${activity}</select><label for="presenceStatus">Presence</label><select id="presenceStatus" name="presenceStatus">${presence}</select><p class="muted">Example status text: 🟢 Support Team Online</p></div>${channelEditor('auto', 'Auto-post channels', 'Maximum 3 servers. Announcements and startup messages post here.', settings.autoChannels || [], false)}${channelEditor('voice', 'Voice auto-join channels', 'Maximum 3 servers. Bot joins on launch and when a member enters. Use a speaker-icon voice channel.', settings.voiceChannels || [], true)}<div class="actions"><button type="submit" data-save>Save settings</button></div></form>`;
+    res.type('html').send(layout('Settings', content, '/settings', settingsScript()));
   } catch (error) {
     res.type('html').send(layout('Settings', `<h1>Settings</h1><p class="error">${escapeHtml(error.message)}</p>`, '/settings'));
   }
@@ -324,6 +440,25 @@ app.post('/settings/voice-test', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/settings/voice-test-json', requireAuth, async (req, res) => {
+  try {
+    const guildId = String(req.body.guildId || '').trim();
+    const channelId = String(req.body.channelId || '').trim();
+    if (!channelId) throw new Error('Enter a channel ID first.');
+    const result = await controlFetch('/api/voice/join', {
+      method: 'POST',
+      body: JSON.stringify({ guildId, channelId }),
+    });
+    if (result && result.ok === false) {
+      res.json({ ok: false, error: result.error || 'Could not join that channel.' });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.json({ ok: false, error: error.message });
+  }
+});
+
 app.post('/settings', requireAuth, async (req, res) => {
   try {
     const data = await controlFetch('/api/settings');
@@ -352,8 +487,17 @@ app.post('/settings', requireAuth, async (req, res) => {
       voiceChannels: readChannels(req.body, 'voice'),
     };
     await controlFetch('/api/settings', { method: 'PUT', body: JSON.stringify(settings) });
-    res.redirect('/settings?msg=' + encodeURIComponent('Settings saved and applied to the bot.'));
+    const message = 'Settings saved and applied to the bot.';
+    if (req.headers['x-lite-fetch'] === '1') {
+      res.json({ ok: true, message });
+      return;
+    }
+    res.redirect('/settings?msg=' + encodeURIComponent(message));
   } catch (error) {
+    if (req.headers['x-lite-fetch'] === '1') {
+      res.json({ ok: false, error: error.message });
+      return;
+    }
     res.redirect('/settings?err=' + encodeURIComponent(error.message));
   }
 });

@@ -9,7 +9,7 @@ type ResultSession = {
 
 const sessions = new Map<string, ResultSession>();
 const TTL_MS = 15 * 60 * 1000;
-const PAGE_SIZE = 5;
+export const PAGE_SIZE = 5;
 
 function cleanExpired(): void {
   const now = Date.now();

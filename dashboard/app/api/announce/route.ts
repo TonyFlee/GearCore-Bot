@@ -8,7 +8,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     return NextResponse.json(await controlFetch("/api/announce", {
       method: "POST",
-      body: JSON.stringify({ message: body.message, channelId: body.channelId || undefined, includeAuto: body.includeAuto !== false }),
+      body: JSON.stringify({
+        message: body.message,
+        channelId: body.channelId || undefined,
+        includeAuto: body.includeAuto !== false,
+        mentionEveryone: body.mentionEveryone === true,
+      }),
     }));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Announcement failed." }, { status: 502 });

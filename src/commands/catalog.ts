@@ -3,7 +3,7 @@ import { resultsComponents } from "../lib/components";
 import { noResultsEmbed, resultsPageEmbed } from "../lib/embeds";
 import { createResultSession, pageSlice } from "../lib/pagination";
 import { getSettings } from "../lib/settings";
-import { getCategories, getCategoryProducts, getProducts } from "../lib/store";
+import { filterByAvailability, getCategories, getCategoryProducts, getProducts } from "../lib/store";
 import type { BotCommand } from ".";
 
 export const catalogCommand: BotCommand = {
@@ -16,6 +16,17 @@ export const catalogCommand: BotCommand = {
         .setDescription("Category to browse. Leave blank for all products.")
         .setAutocomplete(true)
         .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("availability")
+        .setDescription("Filter by in stock or preorder")
+        .setRequired(false)
+        .addChoices(
+          { name: "All", value: "all" },
+          { name: "In stock", value: "in-stock" },
+          { name: "Preorder", value: "preorder" }
+        )
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     if (!getSettings().productCommandsEnabled) {
@@ -25,17 +36,19 @@ export const catalogCommand: BotCommand = {
 
     await interaction.deferReply();
     const category = interaction.options.getString("category") ?? "";
-    const products = category ? await getCategoryProducts(category) : await getProducts();
+    const availability = interaction.options.getString("availability") ?? "all";
+    const products = filterByAvailability(category ? await getCategoryProducts(category) : await getProducts(), availability);
+    const title = [category || "All products", availability === "all" ? "" : availability === "in-stock" ? "in stock" : "preorder"].filter(Boolean).join(" · ");
 
     if (!products.length) {
-      await interaction.editReply({ embeds: [noResultsEmbed(category || "catalog")] });
+      await interaction.editReply({ embeds: [noResultsEmbed(title)] });
       return;
     }
 
-    const sessionId = createResultSession(category || "All products", products);
+    const sessionId = createResultSession(title, products);
     const page = pageSlice(products, 0);
     await interaction.editReply({
-      embeds: [resultsPageEmbed(page.items, category || "All products", page.page, page.pages)],
+      embeds: [resultsPageEmbed(page.items, title, page.page, page.pages)],
       components: [resultsComponents(sessionId, page.page, page.pages)],
     });
   },

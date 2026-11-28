@@ -5,7 +5,10 @@ import { config } from "../config";
 import { commands } from "../commands";
 import { postAnnouncement } from "../lib/announce";
 import { applyPresence } from "../lib/presence";
+import { createScheduledAnnouncement, listScheduledAnnouncements, removeScheduledAnnouncement } from "../lib/schedule-store";
+import { scheduleAnnouncement } from "../lib/scheduler";
 import { getSettings, updateSettings } from "../lib/settings";
+import { deleteTicketTranscript, getTicketTranscript, listTicketTranscripts } from "../lib/ticket-store";
 import { joinVoiceTarget } from "../lib/voice";
 import {
   deleteSupportRequest,
@@ -74,6 +77,32 @@ export function startControlServer(client: Client): void {
     res.json({ requests: listSupportRequests() });
   });
 
+  app.get("/api/transcripts", (_req, res) => {
+    const items = listTicketTranscripts().map(({ messages, ...summary }) => ({
+      ...summary,
+      messageCount: messages.length,
+    }));
+    res.json({ items });
+  });
+
+  app.get("/api/transcripts/:id", (req, res) => {
+    const transcript = getTicketTranscript(req.params.id);
+    if (!transcript) {
+      res.status(404).json({ error: "Transcript not found." });
+      return;
+    }
+    res.json({ transcript });
+  });
+
+  app.post("/api/transcripts/:id/delete", (req, res) => {
+    const removed = deleteTicketTranscript(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Transcript not found." });
+      return;
+    }
+    res.json({ ok: true });
+  });
+
   app.post("/api/support/:id/read", (req, res) => {
     const updated = markSupportRead(req.params.id);
     if (!updated) {
@@ -96,15 +125,48 @@ export function startControlServer(client: Client): void {
     const message = String(req.body?.message ?? "").trim();
     const channelId = String(req.body?.channelId ?? "").trim();
     const includeAuto = req.body?.includeAuto !== false;
+    const mentionEveryone = req.body?.mentionEveryone === true || req.body?.mentionEveryone === "true" || req.body?.mentionEveryone === "on";
 
     try {
-      const results = await postAnnouncement(client, message, "Dashboard", channelId || undefined, includeAuto);
+      const results = await postAnnouncement(client, message, "Dashboard", channelId || undefined, includeAuto, mentionEveryone);
       res.json({ ok: true, results });
     } catch (error) {
       const status = error instanceof Error && error.message.includes("disabled") ? 409 : 400;
       res.status(status).json({ error: error instanceof Error ? error.message : "Announcement failed." });
     }
   }));
+
+  app.get("/api/scheduled", (_req, res) => {
+    res.json({ items: listScheduledAnnouncements() });
+  });
+
+  app.post("/api/scheduled", asyncRoute(async (req, res) => {
+    const message = String(req.body?.message ?? "").trim();
+    if (!message) {
+      res.status(400).json({ error: "Message is required." });
+      return;
+    }
+    const minutes = Math.min(Math.max(Number(req.body?.minutes ?? 60), 1), 10080);
+    const item = createScheduledAnnouncement({
+      message,
+      channelId: String(req.body?.channelId ?? "").trim(),
+      includeAuto: req.body?.includeAuto !== false,
+      mentionEveryone: req.body?.mentionEveryone === true || req.body?.mentionEveryone === "true" || req.body?.mentionEveryone === "on",
+      dueAt: Date.now() + minutes * 60_000,
+      createdBy: "Dashboard",
+    });
+    scheduleAnnouncement(client, item);
+    res.json({ ok: true, item });
+  }));
+
+  app.post("/api/scheduled/:id/delete", (req, res) => {
+    const removed = removeScheduledAnnouncement(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Schedule not found." });
+      return;
+    }
+    res.json({ ok: true });
+  });
 
   app.post("/api/voice/join", asyncRoute(async (req, res) => {
     const guildId = String(req.body?.guildId ?? "").trim();

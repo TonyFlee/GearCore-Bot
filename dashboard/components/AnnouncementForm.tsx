@@ -6,6 +6,7 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
   const [message, setMessage] = useState("");
   const [channelId, setChannelId] = useState("");
   const [includeAuto, setIncludeAuto] = useState(true);
+  const [mentionEveryone, setMentionEveryone] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,6 +23,7 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
         message,
         channelId: channelId.trim() || undefined,
         includeAuto,
+        mentionEveryone,
       }),
     });
     const body = await response.json().catch(() => ({}));
@@ -63,6 +65,15 @@ export default function AnnouncementForm({ defaultChannelId }: { defaultChannelI
           onChange={(event) => setIncludeAuto(event.target.checked)}
         />
         Also post to enabled auto-post channels
+      </label>
+      <label className="toggle" htmlFor="announcement-mention">
+        <input
+          id="announcement-mention"
+          type="checkbox"
+          checked={mentionEveryone}
+          onChange={(event) => setMentionEveryone(event.target.checked)}
+        />
+        Mention everyone (@everyone) outside the embed
       </label>
       {error ? <p className="error">{error}</p> : null}
       {success ? <p className="success">{success}</p> : null}

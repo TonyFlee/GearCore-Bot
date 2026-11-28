@@ -114,3 +114,31 @@ export async function getBundles(): Promise<StoreProduct[]> {
     .map((slug) => products.find((product) => product.slug === slug))
     .filter((product): product is StoreProduct => Boolean(product));
 }
+
+export function filterByAvailability(products: StoreProduct[], mode: string): StoreProduct[] {
+  if (mode === "in-stock") return products.filter((product) => product.stock > 0);
+  if (mode === "preorder") return products.filter((product) => product.preorder_enabled === true);
+  return products;
+}
+
+export async function getFeaturedProducts(limit = 12): Promise<StoreProduct[]> {
+  const products = await getProducts();
+  const featured = products.filter((product) => product.featured === true);
+  return (featured.length ? featured : products).slice(0, limit);
+}
+
+export async function getNewProducts(limit = 12): Promise<StoreProduct[]> {
+  const products = await getProducts();
+  return products
+    .slice()
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+    .slice(0, limit);
+}
+
+export async function findProductsByIds(ids: string[]): Promise<StoreProduct[]> {
+  if (!ids.length) return [];
+  const products = await getProducts();
+  return ids
+    .map((id) => products.find((product) => product.id === id))
+    .filter((product): product is StoreProduct => Boolean(product));
+}

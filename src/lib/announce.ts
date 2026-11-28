@@ -13,7 +13,8 @@ export async function postAnnouncement(
   rawMessage: string,
   authorTag: string,
   overrideChannelId?: string,
-  includeAuto = true
+  includeAuto = true,
+  mentionEveryone = false
 ): Promise<AnnounceResult[]> {
   const settings = getSettings();
   const message = rawMessage.trim();
@@ -39,8 +40,9 @@ export async function postAnnouncement(
     }
     try {
       await (sendable.send as (options: unknown) => Promise<unknown>)({
+        content: mentionEveryone ? "@everyone" : undefined,
         embeds: [announcementEmbed(message, authorTag)],
-        allowedMentions: { parse: [] },
+        allowedMentions: { parse: mentionEveryone ? ["everyone"] : [] },
       });
       results.push({ channelId, ok: true });
     } catch (error) {

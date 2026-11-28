@@ -40,7 +40,12 @@ async function main() {
   if (config.discordGuildIds.length) {
     console.log(`Clearing ${config.discordGuildIds.length} guild command set(s) to prevent duplicates...`);
     for (const guildId of config.discordGuildIds) {
-      await rest.put(Routes.applicationGuildCommands(config.discordClientId, guildId), { body: [] });
+      try {
+        await rest.put(Routes.applicationGuildCommands(config.discordClientId, guildId), { body: [] });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.warn(`Could not clear guild commands for ${guildId}: ${message}. Skipping.`);
+      }
     }
   }
 

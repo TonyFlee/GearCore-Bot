@@ -1,6 +1,6 @@
 import { Events, type Interaction } from "discord.js";
 import { commands } from "../commands";
-import { handleProductButton } from "../lib/components";
+import { handleEngagementButton, handleProductButton, handleTicketButton } from "../lib/components";
 
 export const interactionCreateEvent = {
   name: Events.InteractionCreate,
@@ -22,7 +22,10 @@ export const interactionCreateEvent = {
 
     if (interaction.isButton()) {
       try {
-        const handled = await handleProductButton(interaction);
+        const handled =
+          await handleProductButton(interaction) ||
+          await handleTicketButton(interaction) ||
+          await handleEngagementButton(interaction);
         if (!handled) await interaction.reply({ content: "That button is no longer available.", ephemeral: true });
       } catch (error) {
         console.error("Button interaction failed:", error);

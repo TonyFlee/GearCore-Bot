@@ -4,21 +4,60 @@ Standalone Discord bot for `gearcore.store`. It reads only the public product ca
 
 ## Features
 
-- `/product` — autocomplete search across live products, with paginated results and product buttons.
-- `/catalog` — browse the live catalog by category with autocomplete and pagination.
-- `/random` — show a random live product.
+### Storefront and catalog
+
+- `/product` — autocomplete search across live products, with paginated results, similar items, and a Save button.
+- `/search` — search all live products by name or keyword, with category filtering and pagination.
+- `/catalog` — browse the live catalog by category and availability, with autocomplete and pagination.
+- `/featured` — show featured products from the public catalog.
+- `/new` — show the newest published products.
 - `/bundle` — show live bundle prices and savings with direct site buttons.
+- `/random` — show a random live product.
+- `/wishlist` — per-user saved products. Only the owner can see their list.
+
+### Orders and support
+
 - `/order` — privacy-safe guidance to the customer's own account/invoice. Never reads private orders.
 - `/support` — send a help request to the support inbox and a configured Discord channel.
-- `/announce` — post to the saved channel and all enabled auto-post channels.
+- `/ticket` — post a support panel; customers get private threads with a close button. Closed tickets are archived as transcripts in the dashboard.
+- `/announce` — post to the saved channel and all enabled auto-post channels, optionally mentioning `@everyone` outside the embed.
+- `/schedule` — queue announcements for later with optional `@everyone`; restored after restart.
+
+### Community and engagement
+
+- `/poll` — create a timed poll with up to four options and live vote counts.
+- `/giveaway` — timed giveaway with entry button, entrant tracking, and automatic winner draw.
+- `/remind` — private reminder delivered by DM, restored after restart.
+- `/sound` — soundboard with bundled sounds, autocomplete, voice-channel playback, and staff-only upload/delete.
 - `/invite` — generate an official invite link with the permissions the bot needs.
 - `/help` — delivery, payment, preorder, warranty, and contact information with quick links.
 - `/ping` — bot latency check.
+
+### Automation
+
 - New members — optional welcome message and role assignment.
 - Auto-post — post a startup message and dashboard announcements to up to 3 configured servers/channels.
 - Voice auto-join — join up to 3 configured voice channels on launch, and follow members into them.
 - Discord presence — dashboard-controlled status text, activity type, and online/idle/dnd/invisible state.
-- Web dashboard — password-protected status, announcements, full settings, and support inbox.
+- Web dashboard — password-protected status, announcements, scheduled announcements, ticket transcripts, full settings, support inbox, and voice Test join.
+
+Sound files live in `sounds/`. Add `.opus`, `.ogg`, `.mp3`, or `.wav`; `.opus` is recommended for low-memory hosts. Staff can also upload from Discord with `/sound upload`; `.mp3`/`.wav` conversion requires `ffmpeg` on the host. See `sounds/README.md`.
+
+### Permissions
+
+Commands that change server state require **Manage Server**:
+
+```txt
+/announce
+/schedule
+/ticket
+/poll
+/giveaway
+/sound upload
+/sound delete
+```
+
+Runtime checks are enforced even if Discord hides the command from the command menu.
 
 ## Setup
 
@@ -77,7 +116,12 @@ The local control API starts with the bot on `http://127.0.0.1:8787`.
 
 ## Web dashboard
 
-The dashboard is a separate Next.js app in `dashboard/`. It is intended to run on the same machine as the bot.
+There are two dashboards:
+
+- `dashboard/` — Next.js version for local development.
+- `dashboard-lite/` — lightweight Express version used by `start-host.sh` on low-memory hosts. It needs no build step and has the same core controls.
+
+Both talk to the bot's local control API.
 
 1. Install dashboard dependencies:
 

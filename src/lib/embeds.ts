@@ -1,7 +1,9 @@
 import { EmbedBuilder, escapeMarkdown, type ChatInputCommandInteraction, type GuildMember } from "discord.js";
 import { config, storePath } from "../config";
 import type { StoreProduct } from "../types";
+import type { Giveaway, Poll } from "./engagement-store";
 import { availabilityLabel, priceLabel, productUrl, truncate } from "./format";
+import { PAGE_SIZE } from "./pagination";
 import { getSettings } from "./settings";
 
 const BRAND = 0x06b6d4;
@@ -39,23 +41,30 @@ export function productEmbed(product: StoreProduct): EmbedBuilder {
   return embed;
 }
 
+function productField(product: StoreProduct, number: number) {
+  return {
+    name: `${number}. ${escapeMarkdown(truncate(product.name, 90))}`,
+    value: `${priceLabel(product)}\n${availabilityLabel(product)}\n[View product](${productUrl(product)})`,
+    inline: false,
+  };
+}
+
 export function searchResultsEmbed(products: StoreProduct[], query: string): EmbedBuilder {
-  const lines = products.slice(0, 5).map((product, index) => {
-    return `${index + 1}. [${escapeMarkdown(product.name)}](${productUrl(product)}) — ${priceLabel(product)} · ${availabilityLabel(product)}`;
-  });
-  return baseEmbed()
+  const embed = baseEmbed()
     .setTitle(`Products matching "${truncate(query, 50)}"`)
-    .setDescription(truncate(lines.join("\n"), 3800));
+    .setDescription(`${products.length} result(s) · open a product below.`);
+  for (const [index, product] of products.slice(0, 5).entries()) embed.addFields(productField(product, index + 1));
+  return embed;
 }
 
 export function resultsPageEmbed(products: StoreProduct[], query: string, page: number, pages: number): EmbedBuilder {
-  const lines = products.map((product, index) => {
-    return `${index + 1}. [${escapeMarkdown(product.name)}](${productUrl(product)}) — ${priceLabel(product)} · ${availabilityLabel(product)}`;
-  });
-  return baseEmbed()
+  const offset = page * PAGE_SIZE;
+  const embed = baseEmbed()
     .setTitle(query ? `Products matching "${truncate(query, 44)}"` : "Featured GearCore products")
-    .setDescription(truncate(lines.join("\n"), 3800))
-    .setFooter({ text: `GearCore.Store · page ${page + 1}/${pages}` });
+    .setDescription(`${products.length} product(s) shown · use the buttons to browse.`);
+  for (const [index, product] of products.entries()) embed.addFields(productField(product, offset + index + 1));
+  embed.setFooter({ text: `GearCore.Store · page ${page + 1}/${pages}` });
+  return embed;
 }
 
 export function noResultsEmbed(query: string): EmbedBuilder {
@@ -145,7 +154,7 @@ export function helpEmbed(): EmbedBuilder {
       { name: "Payment", value: "ABA, KHQR/Bakong, and card checkout are supported. KHR uses the rate shown at checkout.", inline: false },
       { name: "First order", value: `Use ${settings.promoCode} for 10% off your first order.`, inline: false },
       { name: "Warranty", value: `[Read warranty terms](${storePath("warranty")}) or ask in /support.`, inline: false },
-      { name: "Commands", value: "/product, /catalog, /bundle, /random, /order, /support, /invite, /ping", inline: false }
+      { name: "Commands", value: "/product, /search, /catalog, /featured, /new, /bundle, /random, /wishlist, /order, /support, /ticket, /announce, /schedule, /poll, /giveaway, /remind, /sound, /invite, /help", inline: false }
     );
 }
 
@@ -177,4 +186,70 @@ export function welcomeEmbed(member: GuildMember): EmbedBuilder {
       { name: "Shop", value: `[Browse gearcore.store](${config.storeUrl})`, inline: true },
       { name: "Help", value: "Use /help or /support if you need assistance.", inline: true }
     );
+}
+
+export function ticketPanelEmbed(): EmbedBuilder {
+  const settings = getSettings();
+  return baseEmbed()
+    .setTitle("GearCore support")
+    .setDescription("Press the button below to open a private support thread with the GearCore team.")
+    .addFields(
+      { name: "What to include", value: "Your question, the product name, and when you ordered. Do not post payment details or invoice links here.", inline: false },
+      { name: "Other contact", value: `Email ${settings.supportEmail} or Telegram @${settings.telegramUsername}`, inline: false }
+    );
+}
+
+export function ticketOpenedEmbed(userTag: string): EmbedBuilder {
+  return baseEmbed()
+    .setTitle("Support ticket opened")
+    .setDescription(`Thanks, ${escapeMarkdown(userTag)}. The GearCore team will reply here.`)
+    .addFields(
+      { name: "Please share", value: "Your question, product name, and order date if relevant.", inline: false },
+      { name: "Privacy", value: "Do not post card details, passwords, or private invoice links.", inline: false }
+    );
+}
+
+export function ticketClosedEmbed(userTag: string): EmbedBuilder {
+  return baseEmbed()
+    .setTitle("Support ticket closed")
+    .setDescription(`Closed by ${escapeMarkdown(userTag)}. Need more help? Open another ticket from the support panel.`);
+}
+
+export function pollEmbed(poll: Poll): EmbedBuilder {
+  const lines = poll.options.map((option, index) => `${index + 1}. ${escapeMarkdown(option)}`);
+  const total = Object.keys(poll.votes).length;
+  return baseEmbed()
+    .setTitle(`Poll: ${truncate(poll.question, 100)}`)
+    .setDescription(`${truncate(lines.join("\n"), 2800)}\n\n${total} vote(s) so far.`)
+    .setFooter({ text: `Ends <t:${Math.floor(poll.closesAt / 1000)}:R> · GearCore.Store` });
+}
+
+export function pollResultsEmbed(poll: Poll, closed = true): EmbedBuilder {
+  const total = Object.keys(poll.votes).length;
+  const lines = poll.options.map((option, index) => {
+    const count = Object.values(poll.votes).filter((vote) => vote === index).length;
+    const percent = total ? Math.round((count / total) * 100) : 0;
+    return `${index + 1}. ${escapeMarkdown(option)} — ${count} vote(s), ${percent}%`;
+  });
+  return baseEmbed()
+    .setTitle(`${closed ? "Poll closed" : "Poll results"}: ${truncate(poll.question, 90)}`)
+    .setDescription(truncate(lines.join("\n"), 2800))
+    .setFooter({ text: `${total} total vote(s) · GearCore.Store` });
+}
+
+export function giveawayEmbed(giveaway: Giveaway): EmbedBuilder {
+  return baseEmbed()
+    .setTitle(`Giveaway: ${truncate(giveaway.prize, 100)}`)
+    .setDescription(`Press the button to enter. ${giveaway.entrants.length} entrant(s) so far.`)
+    .addFields(
+      { name: "Winners", value: String(giveaway.winnerCount), inline: true },
+      { name: "Ends", value: `<t:${Math.floor(giveaway.endsAt / 1000)}:R>`, inline: true }
+    );
+}
+
+export function giveawayResultsEmbed(giveaway: Giveaway, winners: string[]): EmbedBuilder {
+  return baseEmbed()
+    .setTitle(`Giveaway ended: ${truncate(giveaway.prize, 100)}`)
+    .setDescription(winners.length ? `Winners: ${winners.map((id) => `<@${id}>`).join(", ")}` : "No one entered this giveaway.")
+    .setFooter({ text: `${giveaway.entrants.length} entrant(s) · GearCore.Store` });
 }

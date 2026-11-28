@@ -108,6 +108,8 @@ function layout(title, content, active = '', scripts = '') {
   const nav = [
     ['/', 'Status'],
     ['/announcements', 'Announcements'],
+    ['/scheduled', 'Scheduled'],
+    ['/transcripts', 'Transcripts'],
     ['/settings', 'Settings'],
     ['/support', 'Support'],
   ];
@@ -149,6 +151,7 @@ button.small{padding:6px 10px;font-size:12px}
 .muted{color:var(--muted)}
 .error{color:#F87171;border-left:3px solid #B91C1C;padding:9px 12px;background:rgba(185,28,28,.08)}
 .success{color:#34D399;border-left:3px solid #047857;padding:9px 12px;background:rgba(4,120,87,.08)}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);padding:12px;margin:12px 0 0;max-height:520px;overflow:auto}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 8px;vertical-align:top}
 th{color:var(--muted);font-size:12px}
@@ -223,7 +226,7 @@ app.get('/', requireAuth, async (req, res) => {
 });
 
 app.get('/announcements', requireAuth, (req, res) => {
-  res.type('html').send(layout('Announcements', `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Announcements</h1><form class="card" method="post" action="/announcements"><label for="message">Message</label><textarea id="message" name="message" required></textarea><label for="channelId">Override channel ID (optional)</label><input id="channelId" name="channelId" placeholder="Leave blank for saved and auto channels"><label class="toggle"><input type="checkbox" name="includeAuto" checked>Also post to configured auto channels</label><div class="actions"><button type="submit">Post announcement</button></div></form>`, '/announcements'));
+  res.type('html').send(layout('Announcements', `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Announcements</h1><form class="card" method="post" action="/announcements"><label for="message">Message</label><textarea id="message" name="message" required></textarea><label for="channelId">Override channel ID (optional)</label><input id="channelId" name="channelId" placeholder="Leave blank for saved and auto channels"><label class="toggle"><input type="checkbox" name="includeAuto" checked>Also post to configured auto channels</label><label class="toggle"><input type="checkbox" name="mentionEveryone">Mention everyone (@everyone) outside the embed</label><div class="actions"><button type="submit">Post announcement</button></div></form>`, '/announcements'));
 });
 
 app.post('/announcements', requireAuth, async (req, res) => {
@@ -234,6 +237,7 @@ app.post('/announcements', requireAuth, async (req, res) => {
         message: String(req.body.message || '').trim(),
         channelId: String(req.body.channelId || '').trim(),
         includeAuto: req.body.includeAuto === 'on',
+        mentionEveryone: req.body.mentionEveryone === 'on',
       }),
     });
     const sent = (results.results || []).filter((result) => result.ok).length;
@@ -241,6 +245,74 @@ app.post('/announcements', requireAuth, async (req, res) => {
     res.redirect('/announcements?msg=' + encodeURIComponent(`Announcement sent: ${sent} success, ${failed} failed.`));
   } catch (error) {
     res.redirect('/announcements?err=' + encodeURIComponent(error.message));
+  }
+});
+
+app.get('/scheduled', requireAuth, async (req, res) => {
+  try {
+    const data = await controlFetch('/api/scheduled');
+    const items = (data.items || []).map((item) => `<tr><td><code>${escapeHtml(item.id)}</code></td><td>${escapeHtml(new Date(item.dueAt).toLocaleString())}</td><td>${escapeHtml(String(item.message || '').slice(0, 120))}${item.mentionEveryone ? ' · @everyone' : ''}</td><td>${item.channelId ? escapeHtml(item.channelId) : 'saved/auto'}</td><td><form method="post" action="/scheduled/${encodeURIComponent(item.id)}/delete"><button type="submit" class="danger">Delete</button></form></td></tr>`).join('');
+    const rows = items || '<tr><td colspan="5">No scheduled announcements.</td></tr>';
+    res.type('html').send(layout('Scheduled', `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Scheduled announcements</h1><form class="card" method="post" action="/scheduled"><label for="message">Message</label><textarea id="message" name="message" required></textarea><div class="grid"><div><label for="minutes">Minutes from now</label><input id="minutes" name="minutes" type="number" min="1" max="10080" value="60" required></div><div><label for="channelId">Override channel ID (optional)</label><input id="channelId" name="channelId" placeholder="Leave blank for saved and auto channels"></div></div><label class="toggle"><input type="checkbox" name="includeAuto" checked>Also post to configured auto channels</label><label class="toggle"><input type="checkbox" name="mentionEveryone">Mention everyone (@everyone) outside the embed</label><div class="actions"><button type="submit">Schedule announcement</button></div></form><div class="card"><h2>Queue</h2><table><thead><tr><th>ID</th><th>When</th><th>Message</th><th>Target</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`, '/scheduled'));
+  } catch (error) {
+    res.type('html').send(layout('Scheduled', `<h1>Scheduled announcements</h1><p class="error">${escapeHtml(error.message)}</p>`, '/scheduled'));
+  }
+});
+
+app.post('/scheduled', requireAuth, async (req, res) => {
+  try {
+    const minutes = Math.min(Math.max(Number(req.body.minutes || 60), 1), 10080);
+    await controlFetch('/api/scheduled', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: String(req.body.message || '').trim(),
+        channelId: String(req.body.channelId || '').trim(),
+        minutes,
+        includeAuto: req.body.includeAuto === 'on',
+        mentionEveryone: req.body.mentionEveryone === 'on',
+      }),
+    });
+    res.redirect('/scheduled?msg=' + encodeURIComponent(`Announcement scheduled for ${minutes} minute(s) from now.`));
+  } catch (error) {
+    res.redirect('/scheduled?err=' + encodeURIComponent(error.message));
+  }
+});
+
+app.post('/scheduled/:id/delete', requireAuth, async (req, res) => {
+  try {
+    await controlFetch('/api/scheduled/' + encodeURIComponent(req.params.id) + '/delete', { method: 'POST' });
+    res.redirect('/scheduled?msg=' + encodeURIComponent('Scheduled announcement deleted.'));
+  } catch (error) {
+    res.redirect('/scheduled?err=' + encodeURIComponent(error.message));
+  }
+});
+
+app.get('/transcripts', requireAuth, async (req, res) => {
+  try {
+    const id = String(req.query.id || '').trim();
+    if (id) {
+      const data = await controlFetch('/api/transcripts/' + encodeURIComponent(id));
+      const transcript = data.transcript;
+      const messages = (transcript.messages || []).map((message) => `[${escapeHtml(message.createdAt)}] ${escapeHtml(message.authorTag)}: ${escapeHtml(message.content)}`).join('\n');
+      const body = `<h1>Ticket transcript</h1><p class="muted"><a href="/transcripts">← All transcripts</a></p><div class="card"><p><strong>Ticket:</strong> <code>${escapeHtml(transcript.id)}</code></p><p><strong>User:</strong> ${escapeHtml(transcript.userId)}</p><p><strong>Closed by:</strong> ${escapeHtml(transcript.closedBy)}</p><p><strong>Opened:</strong> ${escapeHtml(transcript.openedAt)}</p><p><strong>Closed:</strong> ${escapeHtml(transcript.closedAt)}</p><pre>${messages || 'No messages.'}</pre></div>`;
+      res.type('html').send(layout('Ticket transcript', `${notice(req.query, 'msg')}${notice(req.query, 'err')}${body}`, '/transcripts'));
+      return;
+    }
+    const data = await controlFetch('/api/transcripts');
+    const rows = (data.items || []).map((item) => `<tr><td><a href="/transcripts?id=${encodeURIComponent(item.id)}"><code>${escapeHtml(item.id)}</code></a></td><td>${escapeHtml(item.userId)}</td><td>${escapeHtml(item.closedBy)}</td><td>${escapeHtml(item.closedAt)}</td><td>${escapeHtml(item.messageCount)}</td><td><form method="post" action="/transcripts/${encodeURIComponent(item.id)}/delete"><button type="submit" class="danger small">Delete</button></form></td></tr>`).join('');
+    const table = rows || '<tr><td colspan="6">No ticket transcripts yet.</td></tr>';
+    res.type('html').send(layout('Transcripts', `${notice(req.query, 'msg')}${notice(req.query, 'err')}<h1>Ticket transcripts</h1><div class="card"><table><thead><tr><th>Ticket</th><th>User ID</th><th>Closed by</th><th>Closed at</th><th>Messages</th><th></th></tr></thead><tbody>${table}</tbody></table></div>`, '/transcripts'));
+  } catch (error) {
+    res.type('html').send(layout('Transcripts', `<h1>Ticket transcripts</h1><p class="error">${escapeHtml(error.message)}</p>`, '/transcripts'));
+  }
+});
+
+app.post('/transcripts/:id/delete', requireAuth, async (req, res) => {
+  try {
+    await controlFetch('/api/transcripts/' + encodeURIComponent(req.params.id) + '/delete', { method: 'POST' });
+    res.redirect('/transcripts?msg=' + encodeURIComponent('Transcript deleted.'));
+  } catch (error) {
+    res.redirect('/transcripts?err=' + encodeURIComponent(error.message));
   }
 });
 

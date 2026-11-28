@@ -1,4 +1,5 @@
 import { Events, type Client } from "discord.js";
+import { resumeAutomation } from "../lib/automation";
 import { postStartupAnnouncement } from "../lib/auto-post";
 import { applyPresence } from "../lib/presence";
 import { joinConfiguredVoiceChannels } from "../lib/voice";
@@ -9,6 +10,7 @@ export const readyEvent = {
   async execute(client: Client<true>) {
     console.log(`Logged in as ${client.user.tag}`);
     await applyPresence(client);
+    resumeAutomation(client);
     console.log(`Serving ${client.guilds.cache.size} guild(s)`);
 
     const announcements = await postStartupAnnouncement(client).catch((error) => {
